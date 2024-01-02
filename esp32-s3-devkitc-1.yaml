@@ -24,14 +24,14 @@ esphome:
   on_boot:
       priority: 600
       then: 
-        - script.execute: draw_display
+        #- script.execute: draw_display
         - delay: 30s
         - if:
             condition:
               lambda: return id(init_in_progress);
             then:
               - lambda: id(init_in_progress) = false;
-              - script.execute: draw_display
+              #- script.execute: draw_display
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -42,7 +42,6 @@ esp32:
       CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
       CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
       CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
-
 
 psram:
   mode: octal
@@ -114,30 +113,21 @@ output:
     pin: GPIO47
     id: backlight_output
 
-light:
-  - platform: monochromatic
-    id: led
-    name: LCD Backlight
-    entity_category: config
-    output: backlight_output
-    restore_mode: RESTORE_DEFAULT_ON
-    default_transition_length: 250ms
-
 esp_adf:
   board: esp32-s3-devkitc-1
 
 microphone:
   - platform: esp_adf
-    id: box_mic
+    id: korvo_mic
 
 speaker:
   - platform: esp_adf
-    id: box_speaker
+    id: korvo_speaker
 
 voice_assistant:
   id: va
-  microphone: box_mic
-  speaker: box_speaker
+  microphone: korvo_mic
+  speaker: korvo_speaker
   use_wake_word: true
   noise_suppression_level: 2
   auto_gain: 31dBFS
@@ -170,7 +160,7 @@ voice_assistant:
                 - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
               else:
                 - lambda: id(voice_assistant_phase) = ${voice_assist_muted_phase_id};
-          - script.execute: draw_display
+          #- script.execute: draw_display
   on_client_connected: 
     - if:
         condition:
@@ -187,61 +177,6 @@ voice_assistant:
   on_client_disconnected:
     - lambda: id(voice_assistant_phase) = ${voice_assist_not_ready_phase_id};  
     #- script.execute: draw_display
-
-script:
-  - id: draw_display
-    then:
-      - if:
-          condition:
-            lambda: return !id(init_in_progress);
-          then:
-            - if:
-                condition:
-                  wifi.connected:
-                then:
-                  - if:
-                      condition:
-                        api.connected:
-                      then:
-                        - lambda: |
-                            switch(id(voice_assistant_phase)) {
-                              case ${voice_assist_listening_phase_id}:
-                                id(s3_box_lcd).show_page(listening_page);
-                                id(s3_box_lcd).update();
-                                break;
-                              case ${voice_assist_thinking_phase_id}:
-                                id(s3_box_lcd).show_page(thinking_page);
-                                id(s3_box_lcd).update();
-                                break;
-                              case ${voice_assist_replying_phase_id}:
-                                id(s3_box_lcd).show_page(replying_page);
-                                id(s3_box_lcd).update();
-                                break;
-                              case ${voice_assist_error_phase_id}:
-                                id(s3_box_lcd).show_page(error_page);
-                                id(s3_box_lcd).update();
-                                break;
-                              case ${voice_assist_muted_phase_id}:
-                                id(s3_box_lcd).show_page(muted_page);
-                                id(s3_box_lcd).update();
-                                break;
-                              case ${voice_assist_not_ready_phase_id}:
-                                id(s3_box_lcd).show_page(no_ha_page);
-                                id(s3_box_lcd).update();
-                                break;
-                              default:
-                                id(s3_box_lcd).show_page(idle_page);
-                                id(s3_box_lcd).update();
-                            }
-                      else:
-                        - display.page.show: no_ha_page
-                        - component.update: s3_box_lcd
-                else:
-                  - display.page.show: no_wifi_page
-                  - component.update: s3_box_lcd
-          else:
-            - display.page.show: initializing_page
-            - component.update: s3_box_lcd
 
 switch:
   - platform: template
@@ -272,7 +207,7 @@ switch:
             - voice_assistant.stop
             - lambda: id(va).set_use_wake_word(false);
             - lambda: id(voice_assistant_phase) = ${voice_assist_muted_phase_id};
-            @- script.execute: draw_display
+            #- script.execute: draw_display
 
 globals:
   - id: init_in_progress
